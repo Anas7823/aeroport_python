@@ -46,6 +46,55 @@ def count_airports_without_dst_and_timezones():
         time_zones = connection.execute(text(query_time_zones)).fetchone()[0]
     return {'airports_without_dst': airports_without_dst, 'time_zones': time_zones}
 
+# Requête pour l'aéroport de départ le plus emprunté
+def most_popular_origin():
+    query = """
+    SELECT origin, COUNT(*) AS flight_count
+    FROM flights
+    GROUP BY origin
+    ORDER BY flight_count DESC
+    LIMIT 1;
+    """
+    with engine.connect() as connection:
+        most_popular_origin = connection.execute(text(query)).fetchone()[0]
+    return most_popular_origin
+
+# Requête SQL pour compter le nombre de destinations desservies par chaque compagnie
+def count_destinations_by_carrier():
+    query = """
+    SELECT carrier, COUNT(DISTINCT dest) AS destination_count
+    FROM flights
+    GROUP BY carrier;
+    """
+    with engine.connect() as connection:
+        result = connection.execute(text(query)).fetchall()
+    return result
+
+# Requête SQL pour obtenir les vols ayant atterri à Houston (IAH ou HOU)
+def flights_to_houston():
+    query = """
+    SELECT *
+    FROM flights
+    WHERE dest IN ('IAH', 'HOU');
+    """
+    with engine.connect() as connection:
+        result = connection.execute(text(query)).fetchall()
+    return result
+
+# Requête SQL pour compter les vols de NYC (JFK, LGA, EWR) à Seattle (SEA)
+def flights_nyc_to_seattle():
+    query = """
+    SELECT
+        COUNT(*) AS flights_from_nyc_to_seattle,
+        COUNT(DISTINCT carrier) AS unique_carriers,
+        COUNT(DISTINCT tailnum) AS unique_planes
+    FROM flights
+    WHERE origin IN ('JFK', 'LGA', 'EWR') AND dest = 'SEA';
+    """
+    with engine.connect() as connection:
+        result = connection.execute(text(query)).fetchone()
+    return result
+
 # Fonction pour les 10 destinations les plus prisées
 def top_10_destinations():
     query = """
@@ -84,12 +133,20 @@ def count_companies_planes_cancelled_flights():
     """
     with engine.connect() as connection:
         result = connection.execute(text(query)).fetchone()
-    return {'total_airlines': result[0], 'total_planes': result[1], 'cancelled_flights': result[2]}
+    return {
+        'total_airlines': result[0],
+        'total_planes': result[1],
+        'cancelled_flights': result[2]
+    }
 
 # Utilisation du cache pour charger les données afin d'améliorer les performances
 @st.cache_data
 def load_data():
     airport_counts = count_airports()
+    # origin_most_popular = most_popular_origin()
+    # count_destinations_carrier = count_destinations_by_carrier()
+    # to_houston = flights_to_houston()
+    # nyc_to_seattle = flights_nyc_to_seattle()
     
     # Récupération des données pour les destinations les plus et moins prisées
     top_dest_data = top_10_destinations()
@@ -134,6 +191,26 @@ with col6:
     st.metric(label="Total des compagnies aériennes", value=cancellation_data['total_airlines'])
 with col7:
     st.metric(label="Total des avions", value=cancellation_data['total_planes'])
+
+# # Affichage de l'aéroport de départ le plus emprunté
+# st.markdown("<h3 style='color: #003399;'>✈️ Aéroport de départ le plus emprunté :</h3>", unsafe_allow_html=True)
+# st.metric(label="Aéroport de départ le plus emprunté", value=origin_most_popular)
+
+
+# # Affichage du nombre de destinations par compagnie
+# st.markdown("<h3 style='color: #003399;'>🌍 Nombre de destinations par compagnie :</h3>", unsafe_allow_html=True)
+# count_destinations_df = pd.DataFrame(count_destinations_carrier, columns=['Compagnie', 'Nombre de destinations'])
+# st.dataframe(count_destinations_df)
+
+# # Affichage des vols ayant atterri à Houston
+# st.markdown("<h3 style='color: #003399;'>🛬 Vols ayant atterri à Houston (IAH ou HOU) :</h3>", unsafe_allow_html=True)
+# to_houston_df = pd.DataFrame(to_houston)
+# st.dataframe(to_houston_df)
+
+# # Affichage du nombre de vols de NYC vers Seattle
+# st.markdown("<h3 style='color: #003399;'>🌆 Vols de NYC vers Seattle :</h3>", unsafe_allow_html=True)
+# flights_nyc_to_seattle_df = pd.DataFrame([nyc_to_seattle], columns=['Nombre de vols', 'Compagnies uniques', 'Avions uniques'])
+# st.dataframe(flights_nyc_to_seattle_df)
 
 st.markdown("<h3 style='color: #003399;'>🚫 Vols annulés :</h3>", unsafe_allow_html=True)
 st.metric(label="Vols annulés", value=cancellation_data['cancelled_flights'])
