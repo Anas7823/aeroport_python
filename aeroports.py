@@ -49,9 +49,10 @@ def count_airports_without_dst_and_timezones():
 # Fonction pour les 10 destinations les plus prisées
 def top_10_destinations():
     query = """
-    SELECT dest, COUNT(*) AS flight_count
-    FROM flights
-    GROUP BY dest
+    SELECT a.name, f.dest, COUNT(*) AS flight_count
+    FROM flights f
+    JOIN airports a ON f.dest = a.faa
+    GROUP BY a.name, f.dest
     ORDER BY flight_count DESC
     LIMIT 10;
     """
@@ -62,9 +63,10 @@ def top_10_destinations():
 # Fonction pour les 10 destinations les moins prisées
 def bottom_10_destinations():
     query = """
-    SELECT dest, COUNT(*) AS flight_count
-    FROM flights
-    GROUP BY dest
+    SELECT a.name, f.dest, COUNT(*) AS flight_count
+    FROM flights f
+    JOIN airports a ON f.dest = a.faa
+    GROUP BY a.name, f.dest
     ORDER BY flight_count ASC
     LIMIT 10;
     """
@@ -88,15 +90,21 @@ def count_companies_planes_cancelled_flights():
 @st.cache_data
 def load_data():
     airport_counts = count_airports()
+    
+    # Récupération des données pour les destinations les plus et moins prisées
     top_dest_data = top_10_destinations()
     bottom_dest_data = bottom_10_destinations()
-    cancellation_data = count_companies_planes_cancelled_flights()
-    airports_without_dst = count_airports_without_dst_and_timezones()
     
-    return airport_counts, top_dest_data, bottom_dest_data, cancellation_data, airports_without_dst
+    # Création des DataFrames pour les destinations
+    top_destinations_info = pd.DataFrame(top_dest_data, columns=['Destination', 'Code', 'Nombre de vols']).drop(columns='Code')
+    bottom_destinations_info = pd.DataFrame(bottom_dest_data, columns=['Destination', 'Code', 'Nombre de vols']).drop(columns='Code')
+    
+    return airport_counts, top_destinations_info, bottom_destinations_info
 
 # Chargement des données via la fonction cache
-airport_counts, top_dest_data, bottom_dest_data, cancellation_data, airports_without_dst = load_data()
+airport_counts, top_destinations_info, bottom_destinations_info = load_data()
+cancellation_data = count_companies_planes_cancelled_flights()
+airports_without_dst = count_airports_without_dst_and_timezones()
 
 # Interface Streamlit
 st.markdown("<h1 style='text-align: center; color: #003399;'>Analyse du Trafic Aérien ✈️</h1>", unsafe_allow_html=True)
@@ -126,27 +134,37 @@ with col6:
     st.metric(label="Total des compagnies aériennes", value=cancellation_data['total_airlines'])
 with col7:
     st.metric(label="Total des avions", value=cancellation_data['total_planes'])
-    
+
 st.markdown("<h3 style='color: #003399;'>🚫 Vols annulés :</h3>", unsafe_allow_html=True)
-col6, col7 = st.columns(2)
 st.metric(label="Vols annulés", value=cancellation_data['cancelled_flights'])
 
-# 10 destinations les plus prisées
+# Affichage des 10 destinations les plus prisées
 st.markdown("<h3 style='color: #003399;'>🏆 10 destinations les plus prisées :</h3>", unsafe_allow_html=True)
-st.dataframe(pd.DataFrame(top_dest_data, columns=['Destination', 'Nombre de vols']))
+st.dataframe(top_destinations_info)
+
+# Affichage des 10 destinations les moins prisées
+st.markdown("<h3 style='color: #003399;'>🌍 10 destinations les moins prisées :</h3>", unsafe_allow_html=True)
+st.dataframe(bottom_destinations_info)
 
 # Graphique des 10 destinations les plus prisées
+st.markdown("<h3 style='color: #003399;'>📊 Graphique des 10 destinations les plus prisées :</h3>", unsafe_allow_html=True)
 fig, ax = plt.subplots(figsize=(10, 5))
-ax.bar([row[0] for row in top_dest_data], [row[1] for row in top_dest_data], color='#33c3ff')
+ax.bar(top_destinations_info['Destination'], top_destinations_info['Nombre de vols'], color='#33c3ff')
 ax.set_title("10 destinations les plus prisées", fontsize=14, color='#003399')
 ax.set_xlabel("Destination", fontsize=12, color='#003399')
 ax.set_ylabel("Nombre de vols", fontsize=12, color='#003399')
 plt.xticks(rotation=45)
 st.pyplot(fig)
 
-# 10 destinations les moins prisées
-st.markdown("<h3 style='color: #003399;'>⚠️ 10 destinations les moins prisées :</h3>", unsafe_allow_html=True)
-st.dataframe(pd.DataFrame(bottom_dest_data, columns=['Destination', 'Nombre de vols']))
+# Graphique des 10 destinations les moins prisées
+st.markdown("<h3 style='color: #003399;'>📉 Graphique des 10 destinations les moins prisées :</h3>", unsafe_allow_html=True)
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.bar(bottom_destinations_info['Destination'], bottom_destinations_info['Nombre de vols'], color='#ff6666')
+ax.set_title("10 destinations les moins prisées", fontsize=14, color='#003399')
+ax.set_xlabel("Destination", fontsize=12, color='#003399')
+ax.set_ylabel("Nombre de vols", fontsize=12, color='#003399')
+plt.xticks(rotation=45)
+st.pyplot(fig)
 
 # Barre latérale avec options supplémentaires
 st.sidebar.header("🔧 Options")
