@@ -142,11 +142,10 @@ def count_companies_planes_cancelled_flights():
 # Utilisation du cache pour charger les données afin d'améliorer les performances
 @st.cache_data
 def load_data():
+    
+    # appel des fonctions dans des variables
+    
     airport_counts = count_airports()
-    # origin_most_popular = most_popular_origin()
-    # count_destinations_carrier = count_destinations_by_carrier()
-    # to_houston = flights_to_houston()
-    # nyc_to_seattle = flights_nyc_to_seattle()
     
     # Récupération des données pour les destinations les plus et moins prisées
     top_dest_data = top_10_destinations()
@@ -191,26 +190,6 @@ with col6:
     st.metric(label="Total des compagnies aériennes", value=cancellation_data['total_airlines'])
 with col7:
     st.metric(label="Total des avions", value=cancellation_data['total_planes'])
-
-# # Affichage de l'aéroport de départ le plus emprunté
-# st.markdown("<h3 style='color: #003399;'>✈️ Aéroport de départ le plus emprunté :</h3>", unsafe_allow_html=True)
-# st.metric(label="Aéroport de départ le plus emprunté", value=origin_most_popular)
-
-
-# # Affichage du nombre de destinations par compagnie
-# st.markdown("<h3 style='color: #003399;'>🌍 Nombre de destinations par compagnie :</h3>", unsafe_allow_html=True)
-# count_destinations_df = pd.DataFrame(count_destinations_carrier, columns=['Compagnie', 'Nombre de destinations'])
-# st.dataframe(count_destinations_df)
-
-# # Affichage des vols ayant atterri à Houston
-# st.markdown("<h3 style='color: #003399;'>🛬 Vols ayant atterri à Houston (IAH ou HOU) :</h3>", unsafe_allow_html=True)
-# to_houston_df = pd.DataFrame(to_houston)
-# st.dataframe(to_houston_df)
-
-# # Affichage du nombre de vols de NYC vers Seattle
-# st.markdown("<h3 style='color: #003399;'>🌆 Vols de NYC vers Seattle :</h3>", unsafe_allow_html=True)
-# flights_nyc_to_seattle_df = pd.DataFrame([nyc_to_seattle], columns=['Nombre de vols', 'Compagnies uniques', 'Avions uniques'])
-# st.dataframe(flights_nyc_to_seattle_df)
 
 st.markdown("<h3 style='color: #003399;'>🚫 Vols annulés :</h3>", unsafe_allow_html=True)
 st.metric(label="Vols annulés", value=cancellation_data['cancelled_flights'])
